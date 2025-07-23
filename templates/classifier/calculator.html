@@ -1,0 +1,723 @@
+<!-- templates/classifier/calculator.html -->
+{% extends 'base.html' %}
+
+{% block title %}Calculadora - Clasificador de Mascotas{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center mb-4">
+        <h2><i class="fas fa-calculator text-warning"></i> Calculadora de Gastos</h2>
+        <p class="text-muted">Estima los costos de mantenimiento de diferentes razas</p>
+    </div>
+</div>
+
+{% if not resultado and not comparacion %}
+<!-- Formulario de la calculadora -->
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        {% if error %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> {{ error }}
+        </div>
+        {% endif %}
+        
+        <!-- Pestañas -->
+        <ul class="nav nav-tabs mb-4" id="calculatorTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single" type="button">
+                    <i class="fas fa-paw"></i> Calcular una Raza
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="compare-tab" data-bs-toggle="tab" data-bs-target="#compare" type="button">
+                    <i class="fas fa-balance-scale"></i> Comparar Razas
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="calculatorTabsContent">
+            <!-- Tab 1: Calcular una raza -->
+            <div class="tab-pane fade show active" id="single" role="tabpanel">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="calcular">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Selección de raza -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-paw text-primary"></i> Selecciona una Raza</h6>
+                                </div>
+                                <div class="card-body">
+                                    <select name="raza" class="form-select" required>
+                                        <option value="">-- Selecciona una raza --</option>
+                                        <optgroup label="🐱 Gatos">
+                                            {% for raza in opciones.todas_razas %}
+                                                {% if raza in "Abyssinian,Bengal,Birman,Bombay,British Shorthair,Egyptian Mau,Maine Coon,Persian,Ragdoll,Russian Blue,Siamese,Sphynx" %}
+                                                <option value="{{ raza }}">{{ raza }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </optgroup>
+                                        <optgroup label="🐕 Perros">
+                                            {% for raza in opciones.todas_razas %}
+                                                {% if raza not in "Abyssinian,Bengal,Birman,Bombay,British Shorthair,Egyptian Mau,Maine Coon,Persian,Ragdoll,Russian Blue,Siamese,Sphynx" %}
+                                                <option value="{{ raza }}">{{ raza }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Costos iniciales -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-home text-success"></i> Costos Iniciales</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Adopción/Compra:</label>
+                                        {% for opcion in opciones.tipos_adopcion %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="tipo_adopcion" 
+                                                   value="{{ opcion.valor }}" id="adopcion_{{ opcion.valor }}"
+                                                   {% if opcion.valor == 'refugio' %}checked{% endif %}>
+                                            <label class="form-check-label" for="adopcion_{{ opcion.valor }}">
+                                                <strong>{{ opcion.texto }}</strong><br>
+                                                <small class="text-muted">{{ opcion.descripcion }}</small>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Accesorios:</label>
+                                        {% for opcion in opciones.niveles_accesorios %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="nivel_accesorios" 
+                                                   value="{{ opcion.valor }}" id="accesorios_{{ opcion.valor }}"
+                                                   {% if opcion.valor == 'basicos' %}checked{% endif %}>
+                                            <label class="form-check-label" for="accesorios_{{ opcion.valor }}">
+                                                <strong>{{ opcion.texto }}</strong><br>
+                                                <small class="text-muted">{{ opcion.descripcion }}</small>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <!-- Costos mensuales -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-calendar text-info"></i> Costos Mensuales</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Alimentación:</label>
+                                        {% for opcion in opciones.tipos_comida %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="tipo_comida" 
+                                                   value="{{ opcion.valor }}" id="comida_{{ opcion.valor }}"
+                                                   {% if opcion.valor == 'economica' %}checked{% endif %}>
+                                            <label class="form-check-label" for="comida_{{ opcion.valor }}">
+                                                <strong>{{ opcion.texto }}</strong><br>
+                                                <small class="text-muted">{{ opcion.descripcion }}</small>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Cuidados:</label>
+                                        {% for opcion in opciones.niveles_cuidados %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="nivel_cuidados" 
+                                                   value="{{ opcion.valor }}" id="cuidados_{{ opcion.valor }}"
+                                                   {% if opcion.valor == 'basico' %}checked{% endif %}>
+                                            <label class="form-check-label" for="cuidados_{{ opcion.valor }}">
+                                                <strong>{{ opcion.texto }}</strong><br>
+                                                <small class="text-muted">{{ opcion.descripcion }}</small>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Costos anuales -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-heart-pulse text-danger"></i> Salud y Emergencias</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Plan de Salud:</label>
+                                        {% for opcion in opciones.planes_salud %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="plan_salud" 
+                                                   value="{{ opcion.valor }}" id="salud_{{ opcion.valor }}"
+                                                   {% if opcion.valor == 'basico' %}checked{% endif %}>
+                                            <label class="form-check-label" for="salud_{{ opcion.valor }}">
+                                                <strong>{{ opcion.texto }}</strong><br>
+                                                <small class="text-muted">{{ opcion.descripcion }}</small>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Fondo de Emergencias:</label>
+                                        {% for opcion in opciones.fondos_emergencia %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="fondo_emergencia" 
+                                                   value="{{ opcion.valor }}" id="emergencia_{{ opcion.valor }}"
+                                                   {% if opcion.valor == 'moderado' %}checked{% endif %}>
+                                            <label class="form-check-label" for="emergencia_{{ opcion.valor }}">
+                                                <strong>{{ opcion.texto }}</strong><br>
+                                                <small class="text-muted">{{ opcion.descripcion }}</small>
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fas fa-calculator"></i> Calcular Gastos
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Tab 2: Comparar razas -->
+            <div class="tab-pane fade" id="compare" role="tabpanel">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="comparar">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-balance-scale text-primary"></i> Selecciona Razas a Comparar</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">Selecciona 2-5 razas para comparar sus costos:</p>
+                                    
+                                    <div class="mb-3">
+                                        <h6>🐱 Gatos:</h6>
+                                        <div class="row">
+                                            {% for raza in opciones.todas_razas %}
+                                                {% if raza in "Abyssinian,Bengal,Birman,Bombay,British Shorthair,Egyptian Mau,Maine Coon,Persian,Ragdoll,Russian Blue,Siamese,Sphynx" %}
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="razas_comparar" 
+                                                               value="{{ raza }}" id="comp_{{ raza|slugify }}">
+                                                        <label class="form-check-label" for="comp_{{ raza|slugify }}">
+                                                            {{ raza }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6>🐕 Perros:</h6>
+                                        <div class="row" style="max-height: 200px; overflow-y: auto;">
+                                            {% for raza in opciones.todas_razas %}
+                                                {% if raza not in "Abyssinian,Bengal,Birman,Bombay,British Shorthair,Egyptian Mau,Maine Coon,Persian,Ragdoll,Russian Blue,Siamese,Sphynx" %}
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="razas_comparar" 
+                                                               value="{{ raza }}" id="comp_{{ raza|slugify }}">
+                                                        <label class="form-check-label" for="comp_{{ raza|slugify }}">
+                                                            {{ raza }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-cog text-secondary"></i> Configuración de Comparación</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">Usa la misma configuración para todas las razas:</p>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Adopción:</label>
+                                        <select name="tipo_adopcion" class="form-select form-select-sm">
+                                            {% for opcion in opciones.tipos_adopcion %}
+                                            <option value="{{ opcion.valor }}">{{ opcion.texto }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Alimentación:</label>
+                                        <select name="tipo_comida" class="form-select form-select-sm">
+                                            {% for opcion in opciones.tipos_comida %}
+                                            <option value="{{ opcion.valor }}">{{ opcion.texto }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Cuidados:</label>
+                                        <select name="nivel_cuidados" class="form-select form-select-sm">
+                                            {% for opcion in opciones.niveles_cuidados %}
+                                            <option value="{{ opcion.valor }}">{{ opcion.texto }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Plan de Salud:</label>
+                                        <select name="plan_salud" class="form-select form-select-sm">
+                                            {% for opcion in opciones.planes_salud %}
+                                            <option value="{{ opcion.valor }}">{{ opcion.texto }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-info btn-lg">
+                            <i class="fas fa-balance-scale"></i> Comparar Razas
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif resultado %}
+<!-- Resultados para una sola raza -->
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">
+                    <i class="fas fa-calculator"></i> Gastos Estimados: {{ raza }}
+                    <span class="badge bg-secondary ms-2">
+                        {% if especie == 'gato' %}
+                            <i class="fas fa-cat"></i> Gato
+                        {% else %}
+                            <i class="fas fa-dog"></i> Perro
+                        {% endif %}
+                    </span>
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Resumen ejecutivo -->
+                <div class="row text-center mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h5>{{ gastos.inicial_total|floatformat:0 }}</h5>
+                                <small>Costo Inicial</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5>{{ gastos.mensual_total|floatformat:0 }}</h5>
+                                <small>Por Mes</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5>{{ gastos.anual_total|floatformat:0 }}</h5>
+                                <small>Por Año</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body">
+                                <h5>{{ gastos.vida_total|floatformat:0 }}</h5>
+                                <small>Vida Completa</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Desglose detallado -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-list-ul text-primary"></i> Desglose de Gastos</h6>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th class="text-end">Costo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="table-light">
+                                        <td colspan="2"><strong>💰 Costos Iniciales (una vez)</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;&nbsp;Adopción/Compra</td>
+                                        <td class="text-end">{{ gastos.adopcion|floatformat:0 }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;&nbsp;Accesorios</td>
+                                        <td class="text-end">{{ gastos.accesorios|floatformat:0 }}</td>
+                                    </tr>
+                                    <tr class="fw-bold">
+                                        <td>Subtotal Inicial</td>
+                                        <td class="text-end">{{ gastos.inicial_total|floatformat:0 }}</td>
+                                    </tr>
+                                    
+                                    <tr class="table-light">
+                                        <td colspan="2"><strong>📅 Costos Mensuales</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;&nbsp;Alimentación</td>
+                                        <td class="text-end">{{ gastos.comida_mensual|floatformat:0 }}/mes</td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;&nbsp;Cuidados</td>
+                                        <td class="text-end">{{ gastos.cuidados_mensuales|floatformat:0 }}/mes</td>
+                                    </tr>
+                                    <tr class="fw-bold">
+                                        <td>Subtotal Mensual</td>
+                                        <td class="text-end">{{ gastos.mensual_total|floatformat:0 }}/mes</td>
+                                    </tr>
+                                    
+                                    <tr class="table-light">
+                                        <td colspan="2"><strong>🏥 Costos Anuales</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;&nbsp;Veterinario</td>
+                                        <td class="text-end">{{ gastos.veterinario_anual|floatformat:0 }}/año</td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;&nbsp;Fondo Emergencias</td>
+                                        <td class="text-end">{{ gastos.emergencias_anuales|floatformat:0 }}/año</td>
+                                    </tr>
+                                    <tr class="fw-bold table-success">
+                                        <td>Total Anual</td>
+                                        <td class="text-end">{{ gastos.anual_total|floatformat:0 }}/año</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-line text-success"></i> Proyección Temporal</h6>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <canvas id="gastosChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle"></i> Información Adicional</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Esperanza de vida:</strong> {{ gastos.esperanza_vida }} años</li>
+                                    <li><strong>Costo promedio por año:</strong> ${{ gastos.anual_total|floatformat:0 }}</li>
+                                    <li><strong>Costo por mes de vida:</strong> $<span id="costo-mensual"></span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información de la raza -->
+                {% if info_raza.descripcion %}
+                <div class="mt-4 p-3 bg-light rounded">
+                    <h6><i class="fas fa-paw text-primary"></i> Acerca de {{ raza }}</h6>
+                    <p class="mb-0">{{ info_raza.descripcion }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Botones de acción -->
+                <div class="text-center mt-4">
+                    <a href="{% url 'classifier:calculator' %}" class="btn btn-outline-warning me-2">
+                        <i class="fas fa-redo"></i> Calcular Otra Raza
+                    </a>
+                    <button class="btn btn-outline-info" onclick="window.print()">
+                        <i class="fas fa-print"></i> Imprimir Reporte
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif comparacion %}
+<!-- Resultados de comparación -->
+<div class="row justify-content-center">
+    <div class="col-md-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-balance-scale"></i> Comparación de Costos
+                    <span class="badge bg-light text-dark ms-2">{{ resultados_comparacion|length }} razas</span>
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Tabla de comparación -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Raza</th>
+                                <th class="text-center">Especie</th>
+                                <th class="text-end">Inicial</th>
+                                <th class="text-end">Mensual</th>
+                                <th class="text-end">Anual</th>
+                                <th class="text-end">Vida Completa</th>
+                                <th class="text-center">Ranking</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for resultado in resultados_comparacion %}
+                            <tr class="{% if forloop.first %}table-success{% elif forloop.counter == 2 %}table-warning{% elif forloop.last %}table-danger{% endif %}">
+                                <td>
+                                    <strong>{{ resultado.raza }}</strong>
+                                    {% if forloop.first %}
+                                    <span class="badge bg-success ms-1">Más Económica</span>
+                                    {% elif forloop.last %}
+                                    <span class="badge bg-danger ms-1">Más Costosa</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if resultado.especie == 'gato' %}
+                                        <i class="fas fa-cat text-primary"></i>
+                                    {% else %}
+                                        <i class="fas fa-dog text-success"></i>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ resultado.gastos.inicial_total|floatformat:0 }}</td>
+                                <td class="text-end">{{ resultado.gastos.mensual_total|floatformat:0 }}</td>
+                                <td class="text-end">{{ resultado.gastos.anual_total|floatformat:0 }}</td>
+                                <td class="text-end">{{ resultado.gastos.vida_total|floatformat:0 }}</td>
+                                <td class="text-center">
+                                    {% if forloop.first %}
+                                        <i class="fas fa-trophy text-warning"></i>
+                                    {% else %}
+                                        #{{ forloop.counter }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Gráfico de comparación -->
+                <div class="mt-4">
+                    <h6><i class="fas fa-chart-bar text-info"></i> Comparación Visual</h6>
+                    <canvas id="comparacionChart" width="800" height="400"></canvas>
+                </div>
+                
+                <!-- Análisis -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6><i class="fas fa-award"></i> Más Económica</h6>
+                                <h4>{{ resultados_comparacion.0.raza }}</h4>
+                                <p class="mb-0">Costo anual: {{ resultados_comparacion.0.gastos.anual_total|floatformat:0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <h6><i class="fas fa-exclamation-triangle"></i> Más Costosa</h6>
+                                <h4><strong>{{ resultados_comparacion.0.raza }}</strong></h4>
+                                {% with ultimo_resultado=resultados_comparacion|last %}
+                                <p class="mb-0">Costo anual: {{ ultimo_resultado.gastos.anual_total|floatformat:0 }}</p>
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones -->
+                <div class="text-center mt-4">
+                    <a href="{% url 'classifier:calculator' %}" class="btn btn-outline-info">
+                        <i class="fas fa-redo"></i> Nueva Comparación
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if resultado %}
+{{ gastos.inicial_total|json_script:"inicial-total" }}
+{{ gastos.anual_total|json_script:"anual-total" }}
+{% endif %}
+
+{% if comparacion %}
+{{ resultados_comparacion|json_script:"resultados-comparacion" }}
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Gráfico para resultado individual
+    const inicialTotalElement = document.getElementById('inicial-total');
+    const anualTotalElement = document.getElementById('anual-total');
+    if (anualTotalElement) {
+        const anualTotal = JSON.parse(anualTotalElement.textContent);
+        const costoMensual = Math.round(anualTotal / 12);
+        
+        const costoMensualElement = document.getElementById('costo-mensual');
+        if (costoMensualElement) {
+            costoMensualElement.textContent = costoMensual.toLocaleString();
+        }
+    }
+    
+    if (inicialTotalElement && anualTotalElement) {
+        const inicialTotal = JSON.parse(inicialTotalElement.textContent);
+        const anualTotal = JSON.parse(anualTotalElement.textContent);
+        
+        const ctx = document.getElementById('gastosChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Año 1', 'Año 2', 'Año 3', 'Año 4', 'Año 5'],
+                    datasets: [{
+                        label: 'Costo Acumulado ($)',
+                        data: [
+                            inicialTotal + anualTotal,
+                            inicialTotal + anualTotal * 2,
+                            inicialTotal + anualTotal * 3,
+                            inicialTotal + anualTotal * 4,
+                            inicialTotal + anualTotal * 5
+                        ],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Gráfico para comparación
+    const resultadosElement = document.getElementById('resultados-comparacion');
+    
+    if (resultadosElement) {
+        const resultadosData = JSON.parse(resultadosElement.textContent);
+        
+        const ctx2 = document.getElementById('comparacionChart');
+        if (ctx2) {
+            // Extraer datos de los resultados
+            const labels = resultadosData.map(r => r.raza);
+            const data = resultadosData.map(r => parseFloat(r.gastos.anual_total));
+            
+            // Colores dinámicos basados en la posición
+            const backgroundColors = data.map((_, index) => {
+                if (index === 0) return 'rgba(34, 197, 94, 0.8)'; // Verde para el más barato
+                if (index === data.length - 1) return 'rgba(239, 68, 68, 0.8)'; // Rojo para el más caro
+                return 'rgba(59, 130, 246, 0.8)'; // Azul para los demás
+            });
+            
+            const borderColors = data.map((_, index) => {
+                if (index === 0) return 'rgb(34, 197, 94)';
+                if (index === data.length - 1) return 'rgb(239, 68, 68)';
+                return 'rgb(59, 130, 246)';
+            });
+            
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Costo Anual ($)',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Validación para comparación
+    const compareForm = document.querySelector('#compare form');
+    if (compareForm) {
+        compareForm.addEventListener('submit', function(e) {
+            const checked = document.querySelectorAll('input[name="razas_comparar"]:checked');
+            if (checked.length < 2) {
+                e.preventDefault();
+                alert('Por favor selecciona al menos 2 razas para comparar.');
+            } else if (checked.length > 5) {
+                e.preventDefault();
+                alert('Por favor selecciona máximo 5 razas para comparar.');
+            }
+        });
+    }
+    
+});
+</script>
+{% endblock %}

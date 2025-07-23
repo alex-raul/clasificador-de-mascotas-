@@ -1,0 +1,509 @@
+<!-- templates/classifier/classifier.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasificador Simple</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .result-card {
+            margin-top: 20px;
+        }
+        .breed-info-section {
+            margin-bottom: 15px;
+        }
+        .breed-info-section h6 {
+            color: #0d6efd;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .species-badge {
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .image-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        /* Estilos para el input personalizado */
+        /* Label mejorado */
+        .text-gradient {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.1rem;
+        }
+
+        /* Contenedor del input */
+        .file-input-wrapper {
+            position: relative;
+            display: block;
+            width: 100%;
+        }
+
+        /* Input de archivo estilizado */
+        .file-input {
+            width: 100%;
+            height: 120px;
+            padding: 0;
+            border: 3px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            opacity: 0;
+            z-index: 2;
+        }
+
+        .file-input:hover {
+            border-color: #667eea;
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .file-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        /* Overlay visual (lo que ve el usuario) */
+        .file-input-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+
+        /* Efectos hover en el overlay */
+        .file-input-wrapper:hover .file-input-overlay {
+            border-color: #667eea;
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+        }
+
+        /* Icono de subida */
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-8px); }
+            60% { transform: translateY(-4px); }
+        }
+
+        /* Texto del área de subida */
+        .upload-title {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .upload-info {
+            color: #666;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        /* Estados de validación */
+        .file-input:invalid + .file-input-overlay {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+        }
+
+        .file-input:valid + .file-input-overlay {
+            border-color: #28a745;
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .file-input,
+            .file-input-overlay {
+                height: 100px;
+            }
+            
+            .upload-icon {
+                font-size: 2.5rem;
+                margin-bottom: 8px;
+            }
+            
+            .upload-title {
+                font-size: 0.9rem;
+            }
+            
+            .upload-info {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Efecto shimmer */
+        .file-input-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+            z-index: 0;
+            border-radius: 20px;
+        }
+
+        .file-input-wrapper:hover::before {
+            left: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-paw text-primary"></i> Clasificador de Mascotas</h2>
+            <nav>
+                <a href="{% url 'classifier:home' %}" class="btn btn-outline-secondary me-2">🏠 Inicio</a>
+                <a href="{% url 'classifier:quiz' %}" class="btn btn-outline-success me-2">❓ Quiz</a>
+                <a href="{% url 'classifier:calculator' %}" class="btn btn-outline-warning">💰 Calculadora</a>
+            </nav>
+        </div>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    
+                    <div class="mb-4">
+                        <label for="image" class="form-label fw-bold text-gradient mb-3">
+                            <i class="fas fa-images me-2"></i>Selecciona una imagen de tu mascota
+                        </label>
+                        
+                        <div class="file-input-wrapper">
+                            <input type="file" name="image" id="image" class="form-control file-input" accept="image/*" required>
+                            <div class="file-input-overlay">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <div class="upload-text">
+                                    <h6 class="upload-title">Haz clic para seleccionar una imagen</h6>
+                                    <small class="upload-info">Formatos: JPG, PNG, GIF (Máx. 10MB)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search"></i> Clasificar Imagen
+                        </button>
+                    </div>
+                </form>
+
+                {% if success %}
+                <div class="result-card">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-check-circle"></i> Raza Identificada
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Columna de la imagen -->
+                                <div class="col-md-4">
+                                    {% if image_url %}
+                                    <div class="image-container">
+                                        <img src="{{ image_url }}" alt="Imagen clasificada" class="uploaded-image">
+                                        <p class="text-muted mt-2"><small>Imagen analizada</small></p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Columna de información -->
+                                <div class="col-md-8">
+                                    <!-- Título principal con especie -->
+                                    <div class="d-flex align-items-center mb-3">
+                                        <h3 class="text-success mb-0">{{ breed_name }}</h3>
+                                        {% if especie %}
+                                        <span class="badge bg-primary species-badge">
+                                            {% if especie == 'gato' %}
+                                                <i class="fas fa-cat"></i> Gato
+                                            {% elif especie == 'perro' %}
+                                                <i class="fas fa-dog"></i> Perro
+                                            {% else %}
+                                                <i class="fas fa-question"></i> {{ especie|title }}
+                                            {% endif %}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Confianza -->
+                                    <div class="mb-3">
+                                        <strong>Confianza de la predicción:</strong> 
+                                        <span class="text-success">{{ confidence|floatformat:1 }}%</span>
+                                        <div class="progress mt-1" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" id="confidence-bar" data-confidence="{{ confidence|default:0|floatformat:0 }}"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Características de la raza -->
+                                    {% if caracteristicas %}
+                                    <div class="mb-3">
+                                        <strong>Características:</strong>
+                                        <div class="mt-1">
+                                            {% for categoria, valor in caracteristicas.items %}
+                                            <span class="badge bg-primary me-1 mb-1">{{ valor }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Información detallada de la raza -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    {% if breed_info.descripcion %}
+                                    <div class="breed-info-section">
+                                        <h6><i class="fas fa-info-circle"></i> Descripción</h6>
+                                        <p>{{ breed_info.descripcion }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            {% if breed_info.tamaño_promedio %}
+                                            <div class="breed-info-section">
+                                                <h6><i class="fas fa-ruler"></i> Tamaño Promedio</h6>
+                                                <p>{{ breed_info.tamaño_promedio }}</p>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if breed_info.esperanza_de_vida %}
+                                            <div class="breed-info-section">
+                                                <h6><i class="fas fa-clock"></i> Esperanza de Vida</h6>
+                                                <p>{{ breed_info.esperanza_de_vida }}</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            {% if breed_info.cuidados_especificos %}
+                                            <div class="breed-info-section">
+                                                <h6><i class="fas fa-heart"></i> Cuidados Especiales</h6>
+                                                <p>{{ breed_info.cuidados_especificos }}</p>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if breed_info.recomendaciones_de_actividades %}
+                                            <div class="breed-info-section">
+                                                <h6><i class="fas fa-running"></i> Actividades Recomendadas</h6>
+                                                <p>{{ breed_info.recomendaciones_de_actividades }}</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    {% if breed_info.riesgos_de_salud_comunes %}
+                                    <div class="breed-info-section">
+                                        <h6><i class="fas fa-exclamation-triangle text-warning"></i> Riesgos de Salud Comunes</h6>
+                                        <div class="alert alert-warning">
+                                            {{ breed_info.riesgos_de_salud_comunes }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Botón para nueva clasificación -->
+                            <div class="text-center mt-3">
+                                <a href="{% url 'classifier:classifier' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-redo"></i> Clasificar otra imagen
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sistema de Recomendaciones -->
+                {% if recomendaciones %}
+                <div class="result-card">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-heart"></i> Si te gusta {{ breed_name }}, también te pueden gustar:
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for rec in recomendaciones %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-info">
+                                                {{ rec.nombre }}
+                                                <span class="badge bg-secondary ms-1">
+                                                    {% if rec.especie == 'gato' %}
+                                                        <i class="fas fa-cat"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-dog"></i>
+                                                    {% endif %}
+                                                </span>
+                                            </h6>
+                                            
+                                            <!-- Características similares -->
+                                            {% if rec.caracteristicas %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Características similares:</small>
+                                                <div>
+                                                    {% for categoria, valor in rec.caracteristicas.items %}
+                                                    <span class="badge bg-light text-dark me-1 mb-1">{{ valor }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Descripción corta -->
+                                            {% if rec.info.descripcion %}
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    {{ rec.info.descripcion|truncatewords:15 }}
+                                                </small>
+                                            </p>
+                                            {% endif %}
+                                            
+                                            <!-- Info rápida -->
+                                            <div class="row text-center">
+                                                {% if rec.info.tamaño_promedio %}
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Tamaño</small>
+                                                    <small><strong>{{ rec.info.tamaño_promedio|truncatewords:3 }}</strong></small>
+                                                </div>
+                                                {% endif %}
+                                                {% if rec.info.esperanza_de_vida %}
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Vida</small>
+                                                    <small><strong>{{ rec.info.esperanza_de_vida }}</strong></small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Explicación del sistema -->
+                            <div class="mt-3 p-2 bg-light rounded">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Estas recomendaciones se basan en características similares como tamaño, 
+                                    nivel de energía, cuidados requeridos y temperamento.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% elif success == False %}
+                <div class="result-card">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning">
+                            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Resultado</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Mostrar imagen incluso si falla -->
+                                {% if image_url %}
+                                <div class="col-md-4">
+                                    <div class="image-container">
+                                        <img src="{{ image_url }}" alt="Imagen analizada" class="uploaded-image">
+                                        <p class="text-muted mt-2"><small>Imagen analizada</small></p>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                {% else %}
+                                <div class="col-12">
+                                {% endif %}
+                                    <p>{{ message }}</p>
+                                    {% if confidence %}
+                                    <p><strong>Confianza:</strong> {{ confidence|floatformat:1 }}%</p>
+                                    <div class="progress mt-1" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" id="confidence-bar" data-confidence="{{ confidence|default:0|floatformat:0 }}"></div>
+                                    </div>
+                                    <p class="text-muted mt-2">Se requiere al menos 90% de confianza para mostrar resultados.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log("Página cargada");
+        
+        // Verificar que el formulario existe
+        const form = document.querySelector('form');
+        const fileInput = document.getElementById('image');
+        
+        console.log("Formulario encontrado:", form);
+        console.log("Input de archivo encontrado:", fileInput);
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                console.log("Archivo seleccionado:", this.files[0]);
+            });
+        }
+        
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                console.log("Formulario enviándose...");
+                const fileInput = document.getElementById('image');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    e.preventDefault();
+                    alert("Por favor selecciona una imagen");
+                    return false;
+                }
+                console.log("Enviando archivo:", fileInput.files[0].name);
+            });
+        }
+    </script>
+</body>
+</html>
