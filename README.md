@@ -64,7 +64,6 @@ Un sistema web completo desarrollado en **Django** que utiliza **inteligencia ar
 | IA/ML            | TensorFlow 2.12.0, Keras 2.12.0     |
 | Imagen           | Pillow, NumPy                      |
 | Frontend         | HTML5, CSS3, JavaScript, Bootstrap 5 |
-| Base de datos    | SQLite (modo desarrollo)            |
 | Íconos           | Font Awesome 6                      |
 
 ---
@@ -87,8 +86,6 @@ git clone https://github.com/alex-raul/clasificador-de-mascotas-.git
 
 
 ### 2. Crear entorno virtual
-
-```bash
 # Windows
 python -m venv venv
 venv\Scripts\activate
